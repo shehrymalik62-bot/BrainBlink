@@ -65,7 +65,6 @@ body{overscroll-behavior:none;background:radial-gradient(1200px 600px at 50% -10
 .o:not(.pulse){animation:in .4s both}@keyframes in{from{opacity:0}}
 .fb{animation:pop .25s}@keyframes pop{from{transform:translateY(8px);opacity:0}}
 .ring{filter:drop-shadow(0 0 2px #5ce1e6)}.ch button:hover{box-shadow:0 0 14px rgba(92,225,230,.25)}
-/* v4: loader, pause overlay, power-ups, juice, mobile */
 .ov{position:fixed;inset:0;z-index:50;background:rgba(15,18,25,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
 #ld{background:var(--bg)}#ld h1{animation:pl 1s ease-in-out infinite}@keyframes pl{50%{opacity:.35}}
 .pw{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.pw button{padding:6px 2px;font-size:14px;min-height:48px;display:flex;flex-direction:column;align-items:center;gap:2px}.pw b{color:var(--ac);font-size:13px}.pw button:disabled{opacity:.4;cursor:default}
@@ -148,22 +147,18 @@ body{-webkit-text-size-adjust:100%;overflow-x:hidden;-webkit-user-select:none;us
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const mem={};
 const ls={g(k){try{return localStorage.getItem(k)}catch(e){return mem[k]}},s(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}};
-/* v4: coins persist in localStorage (with in-memory fallback via ls) */
 let coins=0;try{coins=+localStorage.getItem('bs_coins')||0}catch(e){}
 const saveCoins=()=>ls.s('bs_coins',coins);
 let st={snd:1,mus:0,cb:0,rm:matchMedia('(prefers-reduced-motion:reduce)').matches?1:0};
 try{Object.assign(st,JSON.parse(ls.g('bs_set')||'{}'))}catch(e){}
-/* audio */
 let AC,mi,mk=0,scr='menu',started=0;
 function beep(f,d=.12,t='sine',v=.07,at=0,m){if(m?!st.mus:!st.snd)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();if(AC.state=='suspended')AC.resume();const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+at;o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.001,s+d);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+d)}catch(e){}}
 const sfx={tick:()=>beep(660,.05,'square',.025),ok:()=>{const p=1+(Math.random()-.5)*.05;beep(1800*p,.03,'square',.018);beep(880*p,.25,'sine',.06,.04);beep(659*p,.3,'triangle',.05,.16)},no:()=>beep(170,.22,'triangle',.05),lvl:()=>[523,659,784,1047].forEach((f,i)=>beep(f,.15,'sine',.06,i*.09)),streak:()=>[784,988,1319].forEach((f,i)=>beep(f,.12,'triangle',.06,i*.07)),sel:()=>beep(440*(1+Math.random()*.06),.06,'triangle',.05),best:()=>[659,880,1175].forEach((f,i)=>beep(f,.2,'sine',.06,i*.1)),go:()=>beep(392,.12,'sine',.04)};
 const MP=[[[262,330,392,330,294,262,247,294],1300,.9],[[262,294,330,392,440,392,330,294],900,.7],[[330,392,440,523,440,392,494,523],420,.25]];
 function musicSync(){clearInterval(mi);mi=0;if(st.mus){const[P,d,l]=MP[scr=='play'?(G&&G.mode=='blink'?2:1):0];mi=setInterval(()=>beep(P[mk++%8],l,'sine',.02,0,1),d)}}
 function applySet(){document.body.classList.toggle('rm',!!st.rm);ls.s('bs_set',JSON.stringify(st));$$('.tog').forEach(b=>{const k=b.dataset.t,L={snd:'SOUND',mus:'MUSIC',rm:'REDUCED MOTION',cb:'COLORBLIND MODE'}[k];b.setAttribute('aria-pressed',!!st[k]);b.setAttribute('aria-label',L+(st[k]?' on':' off'));b.innerHTML=`<span>${L}</span><span>${st[k]?'ON':'OFF'}</span>`})}
-/* rng */
 function R(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const ri=(r,a,b)=>a+Math.floor(r()*(b-a+1)),pick=(r,a)=>a[Math.floor(r()*a.length)],shuf=(r,a)=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-/* visuals */
 const COL=[['blue','#6aa8ff'],['coral','#ff8a80'],['amber','#f2c14e'],['green','#5fd3a0'],['violet','#b39bff'],['teal','#4fd6d0']];
 const SH=['circle','square','triangle','star','arrow','hex'];const SYM={circle:'●',square:'■',triangle:'▲',star:'★',arrow:'➤',hex:'⬢'};
 const poly=(n,a,b,o=0)=>{let p=[];for(let i=0;i<n;i++){const g=o+i*Math.PI*2/n-Math.PI/2,q=i%2&&b?b:a;p.push((Math.cos(g)*q).toFixed(1)+','+(Math.sin(g)*q).toFixed(1))}return p.join(' ')};
@@ -171,7 +166,6 @@ const SVG={circle:'<circle r="5.2"/>',square:'<rect x="-4.6" y="-4.6" width="9.2
 const nm=o=>COL[o.c][0]+' '+o.s;
 const tf=(o,dx=0,dy=0)=>`translate(${(o.x+dx).toFixed(1)} ${(o.y+dy).toFixed(1)}) rotate(${o.r}) scale(${o.z})`;
 function scene(sc,deco,o={}){return`<svg viewBox="0 0 100 64" role="group" aria-label="Puzzle scene with ${sc.length} shapes"><defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>${deco||''}${sc.map((q,i)=>`<g class="o${o.pulse&&o.pulse.includes(i)?' pulse':''}" data-i="${i}" ${o.click?`tabindex="0" role="button" aria-label="${nm(q)}"`:`role="img" aria-label="${nm(q)}"`}>${q.sh?`<g transform="${tf(q,q.sh[0],q.sh[1])}" fill="#000" opacity=".4">${SVG[q.s]}</g>`:''}<g class="b" transform="${tf(q)}" fill="${COL[q.c][1]}">${SVG[q.s]}</g><g transform="${tf(q)}" fill="url(#gl)" pointer-events="none">${SVG[q.s]}</g>${st.cb?`<text class="sy" x="${q.x.toFixed(1)}" y="${q.y.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${SYM[q.s]}</text>`:''}</g>`).join('')}${o.extra||''}</svg>`}
-/* puzzle generation */
 const cmb=r=>shuf(r,SH.flatMap(s=>COL.map((_,c)=>[s,c])));
 const O=(a,x,y)=>({s:a[0],c:a[1],x,y,r:0,z:1,sh:null});
 const cl=o=>({...o,sh:o.sh&&[...o.sh]});
@@ -201,7 +195,6 @@ function gen(t,n,r,fl){
   if(t=='shadow'){B[k].sh=[-2,2];tgt(k,`The ${nm(o)}'s shadow switched sides`)}
   if(t=='swap'){let j;do j=ri(r,0,A.length-1);while(j==k);const q=A[j];B[k].x=q.x;B[k].y=q.y;B[j].x=o.x;B[j].y=o.y;x.tch.push(nm(q));x.hl=[k,j];x.ok=`The ${nm(o)} and the ${nm(q)} switched places`}
  }else if(t=='multi'){
-  /* v4: 2-3 simultaneous changes (color / move / size). Player taps every changed shape. */
   const m=DM||(/M/.test(fl)?3:2);A=base(n,r,[],false);B=A.map(cl);const ix=shuf(r,A.map((_,i)=>i)).slice(0,m),ops=shuf(r,['color','move','size']).slice(0,m),parts=[];
   ix.forEach((k,j)=>{const o=A[k],op=ops[j];
    if(op=='color'){const u=B.map(nm),nc=[0,1,2,3,4,5].find(q=>q!=o.c&&!u.includes(COL[q][0]+' '+o.s));B[k].c=nc;parts.push(`the ${nm(o)} turned ${COL[nc][0]}`)}
@@ -240,7 +233,6 @@ function gen(t,n,r,fl){
   d=shuf(r,[...new Set(d)]).filter(s=>s!=x.ok).slice(0,3);if(r()<.3)d[2]='Nothing changed';
   x.ch=shuf(r,[x.ok,...d])}
  return x}
-/* levels */
 const LV=[['color',3,'c'],['color',3,'c'],['color',4,'c'],['color',4,'c'],['color',5,'c'],
 ['shape',4,'c'],['color',4,'c'],['shape',5,'c'],['color',5,'c'],['shape',5,'c'],
 ['move',4,'c'],['color',5],['move',5,'c'],['move',5],['color',6,'c'],['move',6,'c'],['move',6],['shape',6,'c'],['move',7,'c'],['move',7],
@@ -255,7 +247,6 @@ const INTRO={6:'Shapes can transform. Watch for a new shape.',11:'Shapes can mov
 const TP=[4,7,10,12,14,17,19,21].map(i=>LV[i]),EL=Array.from({length:400},(_,i)=>i<60?LV[i]:LV[20+(i-60)%40]);
 function valid(x){return JSON.stringify(x.A)!=JSON.stringify(x.B)&&x.B.every((o,i)=>x.B.every((q,j)=>j<=i||Math.hypot(o.x-q.x,o.y-q.y)>=10))&&(x.click?x.tgt>=0:x.ch.length>=3&&x.ch.filter(s=>s==x.ok).length==1&&new Set(x.ch).size==x.ch.length)}
 function mkR(sp,seed){let x;for(let a=0;a<6;a++){const r=R(seed+a*7);x=gen(sp[0],sp[1],r,sp[2]||'');if(/e/.test(sp[2]||'')){const d=ri(r,0,2);x.echo=[x.A,x.A,x.A];x.echo[d]=x.B;x.expl=x.ok;x.ok='Scene '+(d+1);x.ch=['Scene 1','Scene 2','Scene 3'];x.click=0;x.q='WHICH SCENE WAS DIFFERENT?';x.ed=d}if(valid(x))break}return x}
-/* v4: Speed Blink rounds: simple changes only (fair at 0.5-1s), 3-6 shapes, tap the changed one */
 function blinkSet(){const r=R(Date.now()%1000003),P=['color','move','size','disappear','rotate','shape'];return Array.from({length:10},(_,i)=>{const t=pick(r,P);return[t,Math.min(6,3+Math.floor(i/3)),t=='disappear'?'':'c']})}
 function intro(t){ph='intro';clearAll();sfx.go();$('#br').style.width='0%';$('#ch').innerHTML='';$('#prm').textContent='NEW MECHANIC UNLOCKED!';$('#stg').innerHTML='<div class="mask" style="text-align:center;padding:24px;font-size:22px;color:var(--tx)">'+t+'</div>';tm(observe,2200)}
 function echoSeq(){let i=0;const d=Math.max(1.3,obsT*.6)*1000,step=()=>{if(i>=3)return blank();$('#prm').textContent='SCENE '+(i+1);$('#stg').innerHTML=scene(RD.echo[i],RD.deco);$('#br').style.width=((3-i)/3*100)+'%';i++;tm(()=>{$('#stg').innerHTML='<div class="mask">…</div>';tm(step,350)},d)};step()}
@@ -265,7 +256,6 @@ const CAT={shape:'mem',multi:'att',disappear:'mem',appear:'mem',color:'mem',size
 const DN=['Memory','Position','Relationship','Distraction','Expert'];
 function dayKey(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()}
 function dailySet(){const r=R(dayKey());return[[pick(r,['disappear','color','swap']),5],[pick(r,['move','swap']),6],[pick(r,['beside','above','inside','formation','closest']),6],[pick(r,['sym','closest','beside']),7,'d'],[pick(r,['closest','beside','formation','above']),8,'dtle']]}
-/* game state */
 let G,RD,ph='',T=[],t0=0,obsT=3,DM=0;
 const tm=(f,ms)=>T.push(setTimeout(f,ms)),clearAll=()=>{T.forEach(t=>{clearTimeout(t);clearInterval(t)});T=[];$('#br').classList.remove('low')};
 function show(id){$('#po').hidden=true;if(id=='menu'){$('#bb').textContent=((+ls.g('bs_lv')||0)>=10?'⚡ ':'🔒 ')+'SPEED BLINK';$('#mnote').textContent='';dfUI()}scr=id;clearAll();$$('main>section').forEach(s=>s.hidden=s.id!=id);document.body.classList.remove('busy');const f=$('#'+id+' button');f&&f.focus({preventScroll:true});started&&musicSync()}
@@ -308,7 +298,6 @@ $('#stg').addEventListener('click',e=>{const g=e.target.closest('.o');if(g&&ph==
 $('#stg').addEventListener('keydown',e=>{const g=e.target.closest('.o');if(g&&(e.key=='Enter'||e.key==' ')&&ph=='ans'&&RD.click){e.preventDefault();tapObj(g)}});
 $('#ch').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&ph=='ans')resolve(b.dataset.t==RD.ok,b)});
 document.addEventListener('keydown',e=>{if(ph=='ans'&&!RD.click&&/^[1-4]$/.test(e.key)){const b=$$('#ch button')[+e.key-1];b&&b.click()}if(e.key=='Escape'&&!$('#play').hidden)($('#po').hidden?pauseGame():resumeGame())});
-/* results */
 function results(){clearAll();const g=G,daily=g.mode=='daily';show('res');
  $('#rt').textContent=g.mode=='2p'?(g.ps[0]==g.ps[1]?"IT'S A DRAW":'PLAYER '+(g.ps[0]>g.ps[1]?1:2)+' WINS')+' · '+g.ps[0]+' – '+g.ps[1]:daily?'DAILY BLINK COMPLETE':'YOUR BRAINBLINK PROFILE';
  const acc=g.tot?Math.round(g.ok/g.tot*100):0,avg=g.times.length?(g.times.reduce((a,b)=>a+b,0)/g.times.length).toFixed(1):'0.0';
@@ -323,45 +312,32 @@ function results(){clearAll();const g=G,daily=g.mode=='daily';show('res');
  $('#rsh').onclick=()=>share(`BrainBlink: ${g.score.toLocaleString()} pts, level ${g.maxLv}, ${acc}% accuracy, best streak ${g.bestStreak}. Beat that!`);
  $('#ra').onclick=()=>startGame(g.endless?'endless':g.mode=='tut'?'game':g.mode)}
 function bests(){const dk=ls.g('bs_d'+dayKey());$('#bs').innerHTML=[['Best Score',(+ls.g('bs_best')||0).toLocaleString()],['Highest Level',+ls.g('bs_lv')||0],['Blink Mode',(+ls.g('bs_bl')||0).toLocaleString()],['Runs',+ls.g('bs_run')||0],['Coins',coins],["Daily Blink",dk?(+dk).toLocaleString():'—']].map(a=>`<span class="chip"><small>${a[0]}</small>${a[1]}</span>`).join('')}
-/* bg particles */
 function bgMake(){const b=$('#bg');if(b.children.length)return;for(let i=0;i<16;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.animationDuration=(10+Math.random()*14)+'s';s.style.animationDelay=-Math.random()*20+'s';b.appendChild(s)}}
-/* nav */
 document.addEventListener('click',e=>{started=1;const pw=e.target.closest('[data-pw]');if(pw&&G)usePw(pw.dataset.pw);const b=e.target.closest('[data-go]');if(b){sfx.sel();const g=b.dataset.go;
  if(g=='play')startGame(ls.g('bs_tut')?'game':'tut');else if(g=='daily'||g=='endless'||g=='2p')startGame(g);else if(g=='blink'){if((+ls.g('bs_lv')||0)>=10)startGame('blink');else $('#mnote').textContent='Speed Blink unlocks when you clear level 10.'}else if(g=='tut')startGame('tut');
  else{show(g);if(g=='best')bests();if(g=='ach')achR()}}
  const dd=e.target.closest('[data-df]');if(dd){ls.s('bs_diff',dd.dataset.df);dfUI();sfx.sel()}const t=e.target.closest('.tog');if(t){st[t.dataset.t]=st[t.dataset.t]?0:1;applySet();sfx.sel();if(t.dataset.t=='mus'||t.dataset.t=='snd')musicSync()}});
-/* ===== v4 additions ===== */
-/** Tap handler for click-type puzzles. Single change: answer at once. Multi change: collect taps, judge when all picked. */
 function tapObj(g){const i=+g.dataset.i;if(!RD.multi)return resolve(i==RD.tgt);G.sel=G.sel||[];const j=G.sel.indexOf(i);if(j>=0){G.sel.splice(j,1);g.classList.remove('sel')}else{G.sel.push(i);g.classList.add('sel');sfx.sel()}if(G.sel.length==RD.multi)resolve(G.sel.every(v=>RD.tgts.includes(v)))}
-/** Answer countdown for levels 41+ (timeout counts as a miss). */
 function ansTimer(){if(RD.echo||G.df=='e')return;const L=Math.max(10,16-(G.i-40)*.9)-(G.df=='h'?3:0),b=$('#br'),s=performance.now();b.style.width='100%';T.push(setInterval(()=>{const l=L-(performance.now()-s)/1000;b.style.width=Math.max(0,l/L*100)+'%';b.classList.toggle('low',l<3);if(l<=0)resolve(false)},100))}
-/** Highlight the change. free=true is the automatic hint after 2 misses on one level. Hints halve the points. */
 function hint(free){if(ph!='ans'||!RD||NP())return;if(!free){const c=pc('hint');if(coins<c)return;coins-=c;saveCoins()}G.hinted=true;
  if(RD.echo)$$('#ch button').forEach(b=>{if(b.dataset.t==RD.ok)b.classList.add('hn')});
  else{const ex=RD.hl.map(i=>RD.B[i]).map(o=>`<circle class="ring" cx="${o.x}" cy="${o.y}" r="${9*o.z}"/>`).join('')+RD.gh.map(o=>`<circle class="gh" cx="${o.x}" cy="${o.y}" r="8"/>`).join('');$('#stg').innerHTML=scene(RD.B,RD.deco,{click:RD.click,extra:ex});G.sel=[]}
  sfx.sel();hud()}
 const PWC={hint:30,time:40,life:60,skip:80},pc=k=>Math.round(PWC[k]*(G&&G.df=='e'?.8:G&&G.df=='h'?1.2:1)),NP=()=>G.mode=='tut'||G.mode=='2p';
-/** Enable/disable the power-up buttons for the current phase and coin balance. */
 function pwUpdate(){if(!G)return;const on={hint:ph=='ans',time:ph=='obs'&&!(RD&&RD.echo),life:(G.mode=='game'||G.mode=='blink')&&G.lives>0&&G.lives<G.ml&&ph!='intro',skip:ph=='ans'||ph=='obs'};$$('#pw button').forEach(b=>{const k=b.dataset.pw;b.disabled=NP()||!on[k]||coins<pc(k);b.lastElementChild.textContent=pc(k)})}
-/** Spend coins on a power-up: hint, extra time, extra life or skip level. */
 function usePw(k){if(k=='hint')return hint();if(coins<pc(k)||NP())return;
  if(k=='time'&&ph=='obs')obsT+=G.mode=='blink'?.3:2;
  else if(k=='life'&&G.lives>0&&G.lives<G.ml)G.lives++;
  else if(k=='skip'&&(ph=='obs'||ph=='ans')){coins-=pc(k);saveCoins();clearAll();G.i++;return next()}
  else return;
  coins-=pc(k);saveCoins();sfx.sel();hud()}
-/** Correct-answer juice: screen shake plus star particles (skipped with reduced motion). */
 function fx(){if(st.rm)return;const s=$('#stg');s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');const b=s.getBoundingClientRect();for(let i=0;i<14;i++){const p=document.createElement('i');p.className='pt';p.textContent='✦';p.style.cssText=`left:${b.left+b.width/2}px;top:${b.top+b.height/2}px;--dx:${(Math.random()-.5)*280}px;--dy:${(Math.random()-.5)*220}px;color:${COL[i%6][1]}`;document.body.appendChild(p);setTimeout(()=>p.remove(),800)}}
-/** Confetti burst on every 10th level. */
 function confetti(){if(st.rm)return;for(let i=0;i<40;i++){const p=document.createElement('i');p.className='cf';p.style.cssText=`left:${Math.random()*100}vw;background:${COL[i%6][1]};animation-delay:${Math.random()*.4}s;--r:${Math.random()*720}deg`;document.body.appendChild(p);setTimeout(()=>p.remove(),2200)}}
 let pph='';
-/** Pause: stop all timers and show the overlay. */
 function pauseGame(){if($('#play').hidden||!$('#po').hidden)return;pph=ph;clearAll();$('#po').hidden=false;$('#pzR').focus()}
-/** Resume: back to the scene being watched, or to the answer screen (no free re-viewing of the scene). */
 function resumeGame(){$('#po').hidden=true;if(pph=='obs')observe();else if(pph=='intro')intro(INTRO[G.i+1]);else if(pph=='blank'||pph=='ans')answer()}
 $('#mn').onclick=pauseGame;$('#pzR').onclick=resumeGame;$('#pzX').onclick=()=>{$('#po').hidden=true;startGame(G.endless?'endless':G.mode)};$('#pzM').onclick=()=>show('menu');
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('#play').hidden&&$('#po').hidden)pauseGame()});
-/* v7: difficulty, achievements, share */
 function gd(){const d=ls.g('bs_diff');return d=='e'||d=='h'?d:'n'}
 function dfUI(){const d=gd();$$('[data-df]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.df==d));$('#pb').textContent='▶ PLAY ('+{e:'EASY',n:'NORMAL',h:'HARD'}[d]+')'}
 const AL=[['fs','🥇','First Steps','Complete the tutorial'],['p10','🎯','Perfect 10','10 correct in a row'],['sd','⚡','Speed Demon','Answer in under 1 second'],['hw','🧠','Halfway There','Reach level 25'],['bm','👑','Brain Master','Complete level 50'],['ee','♾️','Endless Explorer','Reach endless level 25'],['sb','👥','Social Butterfly','Play a 2-player match'],['dd','📅','Daily Devotee','7 daily streaks'],['cc','💰','Coin Collector','Collect 500 coins total'],['ey','🎨','Eagle Eye','20 correct without hints'],['of','🔥','On Fire','20 answer streak'],['ck','💪','Comeback Kid','Win with 1 life left']];
