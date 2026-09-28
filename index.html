@@ -1,87 +1,46 @@
 #!/usr/bin/env python3
-"""BrainBlink v5 patcher. Usage: python3 apply_v5.py brainblink.html
-Writes brainblink_v5.html. Every anchor must match exactly once, else it aborts."""
+"""BrainBlink v6 patcher, part 1 (fixes F2-F7). Usage: python3 apply_v6.py brainblink_v5.html
+Input must be the v5 OUTPUT. Writes brainblink_v6.html. Every anchor must match exactly once, else it aborts."""
 import sys
-src = sys.argv[1] if len(sys.argv) > 1 else 'brainblink.html'
+src = sys.argv[1] if len(sys.argv) > 1 else 'brainblink_v5.html'
 h = open(src, encoding='utf-8').read()
 P = []
 def p(a, b): P.append((a, b))
 
-# ---- CSS (urgent timer bar, toast) ----
-p(r"""</style></head>""", r""".bar.urg i{background:var(--no);animation:ug .5s infinite alternate}@keyframes ug{to{opacity:.45}}
-#ts{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pn);border:2px solid var(--ac);border-radius:14px;padding:10px 18px;font-weight:800;z-index:60}
-</style></head>""")
+# ---- F3 + F7: echo starts at level 31 (index 30); M (multi-change) flag is preserved ----
+# New echo levels: 31,34,37,40,43,45,47,49,50. Levels 32,33 stay normal.
+p(r"""[32,35,38,41,43,45,47,49].forEach(i=>LV[i]=[LV[i][0],LV[i][1],(LV[i][2]||'').replace('M','')+'e']);""",
+  r"""[30,33,36,39,42,44,46,48,49].forEach(i=>LV[i]=[LV[i][0],LV[i][1],(LV[i][2]||'')+'e']);""")
+p(r"""INTRO[33]='Three scenes. One is different.';""",
+  r"""INTRO[31]='Three scenes. One is different.';""")
 
-# ---- HTML: menu button, share button, toast ----
-p(r"""<button data-go="daily">🧠 DAILY BLINK</button>""", r"""<button data-go="daily">🧠 DAILY BLINK</button>
-  <button data-go="end" aria-label="Endless mode">♾ ENDLESS</button>""")
-p(r"""<button class="pri" id="ra">PLAY AGAIN</button>""", r"""<button class="pri" id="ra">PLAY AGAIN</button><button id="sh" aria-label="Share score">📤 SHARE SCORE</button>""")
-p(r"""<div id="po" class="ov\"""".replace('\\"', '"'), r"""<div id="ts" role="status" aria-live="polite" hidden></div><div id="po" class="ov\"""".replace('\\"', '"'))
+# ---- F4: endless observe time relaxed: 4 / 3.2 / 2.8 (through level 53) / 2.5 minimum ----
+p(r"""function endObs(l){return l<=10?4:l<=25?3:l<=50?2.5:2}""",
+  r"""function endObs(l){return l<=10?4:l<=25?3.2:l<=53?2.8:2.5}""")
 
-# ---- F3: music default OFF + 3 patterns ----
-p(r"""let st={snd:1,mus:1,""", r"""let st={snd:1,mus:0,""")
-p(r"""function musicSync(){clearInterval(mi);mi=0;if(st.mus){const P=[262,294,330,392,440,392,330,294];mi=setInterval(()=>beep(P[mk++%8],.7,'sine',.02,0,1),900)}}""",
-r"""/* v5: 3 music patterns x 16 notes: menu (C pentatonic, slow), play (A dorian, medium), speed (A phrygian, fast) */
-const MU={menu:{n:[262,294,330,392,440,392,330,294,262,330,392,523,440,392,330,294],ms:900,t:'sine',d:.8,v:.02},play:{n:[220,262,330,294,349,330,262,247,220,294,349,440,392,349,330,262],ms:520,t:'triangle',d:.4,v:.02},speed:{n:[220,233,294,233,330,311,220,208,220,233,349,330,294,262,233,208],ms:230,t:'square',d:.15,v:.012}};let mm='menu';
-/** Restart music loop; optional m = pattern name to switch to. */
-function musicSync(m){if(m)mm=m;clearInterval(mi);mi=0;if(st.mus){const q=MU[mm];mi=setInterval(()=>beep(q.n[mk++%16],q.d,q.t,q.v,0,1),q.ms)}}""")
-p(r"""if(id=='menu'){$('#bb').textContent=""", r"""if(id=='menu'){musicSync('menu');$('#bb').textContent=""")
-p(r"""list:mode=='daily'?dailySet():""", r"""list:mode=='end'?endList():mode=='daily'?dailySet():""")
-p(r"""musicSync();show('play');next()}""", r"""musicSync(mode=='blink'?'speed':'play');show('play');next()}""")
+# ---- F2 (Option A): power-ups usable in endless mode ----
+p(r"""b.disabled=t||G.mode=='end'||!on[k]""",
+  r"""b.disabled=t||!on[k]""")
 
-# ---- F6: relaxed answer timer + red pulse (echo rounds never get a timer) ----
-p(r"""const L=Math.max(7,16-(G.i-40)*.9),s=performance.now();$('#br').style.width='100%';T.push(setInterval(()=>{const l=L-(performance.now()-s)/1000;$('#br').style.width=Math.max(0,l/L*100)+'%';if(l<=0)resolve(false)},100))""",
-r"""if(RD.echo)return;const L=G.mode=='end'?10:Math.max(10,18-(G.i-40)*.7),s=performance.now(),b=$('#br');b.style.width='100%';T.push(setInterval(()=>{const l=L-(performance.now()-s)/1000;b.style.width=Math.max(0,l/L*100)+'%';b.parentNode.classList.toggle('urg',l<3);if(l<=0)resolve(false)},100))""")
-p(r"""if(ph!='ans')return;ph='fb';clearAll();const dt=""", r"""if(ph!='ans')return;ph='fb';clearAll();$('#br').parentNode.classList.remove('urg');const dt=""")
-p(r"""if(G.mode=='game'&&G.i>=40)ansTimer();""", r"""if((G.mode=='game'&&G.i>=40)||(G.mode=='end'&&G.i>=50))ansTimer();""")
+# ---- F5: no double best sound. Base results() already plays sfx.best on a new SCORE best. ----
+# Remember the old score best BEFORE base results() runs, so we know whether it already played.
+p(r"""results=function(){r0();if(G.mode!='end')return;""",
+  r"""results=function(){const sb=+ls.g('bs_end_score')||0;r0();if(G.mode!='end')return;const sbest=G.score>sb;""")
+# Level-best jingle only if the score-best one did not just play; prefers sfx.lvl if it exists.
+p(r"""sfx.best();confetti()}$('#rt')""",
+  r"""if(!sbest){(sfx.lvl||sfx.best)();confetti()}}$('#rt')""")
 
-# ---- F2: endless wiring ----
-p(r"""const sp=G.list[G.i],seed=G.mode=='daily'""", r"""const sp=G.list[G.i],seed=G.mode=='end'?ES+G.i*97:G.mode=='daily'""")
-p(r"""obsT=G.mode=='tut'?5:""", r"""obsT=G.mode=='tut'?5:G.mode=='end'?endObs(G.i+1):""")
-p(r"""((G.mode=='game'||G.mode=='blink')&&G.lives<=0)))return results();""", r"""((G.mode=='game'||G.mode=='blink'||G.mode=='end')&&G.lives<=0)))return results();""")
-p(r"""const end=!tut&&((G.i+1>=G.list.length&&(good||G.mode!='game'))||((G.mode=='game'||G.mode=='blink')&&G.lives<=0));""",
-  r"""const end=!tut&&((G.i+1>=G.list.length&&(good||G.mode!='game'))||((G.mode=='game'||G.mode=='blink'||G.mode=='end')&&G.lives<=0));""")
-p(r"""G.mode=='game'&&(G.i+1)%10==0)""", r"""(G.mode=='game'||G.mode=='end')&&(G.i+1)%10==0)""")
-p(r"""g.mode=='blink'?'bs_bl':'bs_best'""", r"""g.mode=='blink'?'bs_bl':g.mode=='end'?'bs_end_score':'bs_best'""")
-p(r"""b.disabled=t||!on[k]""", r"""b.disabled=t||G.mode=='end'||!on[k]""")
-p(r"""else if(g=='tut')startGame('tut');""", r"""else if(g=='tut')startGame('tut');else if(g=='end')startGame('end');""")
-
-# ---- F5 intro + v5 block (echo, endless, share) ----
-p(r"""setTimeout(()=>{const l=$('#ld');""", r"""/* ===== v5 additions ===== */
-/* F5: echo (3 scenes, 1 differs) from level 33: 33,36,39 then 42,44,46,48,50. Multi-change flag M dropped so echo stays fair. */
-[32,35,38,41,43,45,47,49].forEach(i=>LV[i]=[LV[i][0],LV[i][1],(LV[i][2]||'').replace('M','')+'e']);
-INTRO[33]='Three scenes. One is different.';
-/* F2: endless mode. ES = per-run seed. */
-let ES=0;
-/** Level spec [type,shapes,flags] for endless level n (1-based), deterministic per seed s. Tiers: 1-10, 11-25, 26-50, 51+. */
-function genLevel(s,n){const r=R(s+n*13);
- if(n>50)return['multi',ri(r,7,9),'Md'];
- if(n>25)return['multi',ri(r,5,7),r()<.5?'M':''];
- if(n>10)return r()<.5?['multi',ri(r,4,5),'']:[pick(r,['move','shape','color']),5,'c'];
- const t=pick(r,['color','shape','move','disappear','size']);return[t,ri(r,3,4),t=='disappear'?'':'c']}
-/** Build the (long) endless level list for a fresh run. */
-function endList(){ES=(Date.now()%100000)|0;return Array.from({length:500},(_,i)=>genLevel(ES,i+1))}
-/** Observe time (seconds) for endless level l. */
-function endObs(l){return l<=10?4:l<=25?3:l<=50?2.5:2}
-{const h0=hud;/** HUD wrapper: endless label, hearts and best level. */
-hud=function(){h0();if(G.mode!='end')return;$('#hl').innerHTML='<small>ENDLESS</small>LEVEL '+(G.i+1);$('#hk').innerHTML+=' · BEST '+(+ls.g('bs_endless_best')||0);$('#hh').hidden=false;$('#hh').textContent='❤️'.repeat(G.lives)+'🖤'.repeat(3-G.lives)}}
-{const r0=results;/** Results wrapper: endless best level saved under bs_endless_best. */
-results=function(){r0();if(G.mode!='end')return;const L=G.maxLv,b=+ls.g('bs_endless_best')||0,nb=L>b;if(nb){ls.s('bs_endless_best',L);sfx.best();confetti()}$('#rt').textContent='ENDLESS OVER';$('#rn').textContent='You reached level '+L+'!'+(nb?' New best!':' Best: '+b)}}
-/* F4: share score (native share sheet, else clipboard + toast, 1s cooldown) */
-let shT=0,shC=0;
-/** Show a toast for 2 seconds. */
-function toast(m){const e=$('#ts');e.textContent=m;e.hidden=false;clearTimeout(shT);shT=setTimeout(()=>e.hidden=true,2000)}
-/** Old-browser clipboard fallback. */
-function cpy(t){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()}
-$('#sh').onclick=async()=>{const n=Date.now();if(n-shC<1000)return;shC=n;const tx='I scored '+G.score.toLocaleString()+' in BrainBlink! 🧠 Can you beat me? https://shehrymalik62-bot.github.io/BrainBlink/';
- try{if(navigator.share){await navigator.share({text:tx});return}}catch(e){if(e&&e.name=='AbortError')return}
- try{await navigator.clipboard.writeText(tx)}catch(e){cpy(tx)}toast('Copied!')};
-setTimeout(()=>{const l=$('#ld');""")
+# ---- F6: bs_end_score is now READ: endless results show "Best Endless Score" ----
+p(r"""(nb?' New best!':' Best: '+b)}}""",
+  r"""(nb?' New best level!':' Best level: '+b)+' · Best Endless Score: '+Math.max(+ls.g('bs_end_score')||0,G.score).toLocaleString()}}""")
 
 for a, b in P:
     n = h.count(a)
     if n != 1:
-        sys.exit(f'ANCHOR FAILED ({n} matches): {a[:70]}')
+        sys.exit('ANCHOR FAILED (%d matches): %s' % (n, a[:70]))
     h = h.replace(a, b)
-open('brainblink_v5.html', 'w', encoding='utf-8').write(h)
-print('OK -> brainblink_v5.html', len(h.encode()) // 1024, 'KB')
+open('brainblink_v6.html', 'w', encoding='utf-8').write(h)
+kb = len(h.encode()) // 1024
+print('OK -> brainblink_v6.html', kb, 'KB')
+if kb >= 120:
+    print('WARNING: file is over the 120KB limit')
