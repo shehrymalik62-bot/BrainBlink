@@ -120,7 +120,7 @@ body{-webkit-text-size-adjust:100%;overflow-x:hidden;-webkit-user-select:none;us
  <div class="stats" id="rs"></div><span class="chip" id="rc"></span>
  <div class="stack" style="width:100%" id="rk"></div>
  <p id="rd" style="font-size:13px">Game performance only — not a scientific assessment.</p>
- <div class="stack"><button class="pri" id="ra">PLAY AGAIN</button><button id="rsh" aria-label="Share score">📤 SHARE SCORE</button><button data-go="menu">MAIN MENU</button></div>
+ <div class="stack"><button class="pri" id="ra">PLAY AGAIN</button><button data-go="menu">MAIN MENU</button></div>
 </section>
 <section id="ach" class="mid" hidden>
  <h2>ACHIEVEMENTS</h2><p id="ac" aria-live="polite"></p><div class="ag" id="ag" role="list"></div>
@@ -141,7 +141,7 @@ body{-webkit-text-size-adjust:100%;overflow-x:hidden;-webkit-user-select:none;us
 </section>
 <footer id="pf">Privacy: no accounts, no ads, no tracking. Your progress, coins and settings stay in this browser only and are never sent anywhere.<br>Credits: all shapes, art and sounds are original and made in code.</footer>
 </main>
-<div id="ap" class="ap" role="status" aria-live="polite"></div><div id="ts" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="ap" class="ap" role="status" aria-live="polite"></div>
 <div id="po" class="ov" role="dialog" aria-modal="true" aria-label="Paused" hidden><h2>PAUSED</h2><div class="stack"><button class="pri" id="pzR">RESUME</button><button id="pzX">RESTART</button><button class="tog" data-t="snd"></button><button class="tog" data-t="mus"></button><button class="tog" data-t="rm"></button><button class="tog" data-t="cb"></button><button id="pzM">MAIN MENU</button></div></div>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -309,7 +309,6 @@ function results(){clearAll();const g=G,daily=g.mode=='daily';show('res');
  let bi=-1;S.forEach((s,i)=>{if(s[1]!==null&&(bi<0||s[1]>S[bi][1]))bi=i});
  $('#rk').innerHTML=S.map(s=>`<div class="sk"><span>${s[0]}</span><div><i style="width:${s[1]||0}%"></i></div><span>${s[1]===null?'—':s[1]+'%'}</span></div>`).join('')+(bi>=0?`<p>Your strongest game skill was ${S[bi][0][0]+S[bi][0].slice(1).toLowerCase()}.</p>`:'');
  if(g.mode=='2p')unlock('sb');if(g.mode=='game'&&!g.endless&&g.lives==1&&g.i>=g.list.length)unlock('ck');if(daily)dailyStreak();$('#rc').textContent='🏆 '+ach.length+' / 12 achievements';
- $('#rsh').onclick=()=>share(`BrainBlink: ${g.score.toLocaleString()} pts, level ${g.maxLv}, ${acc}% accuracy, best streak ${g.bestStreak}. Beat that!`);
  $('#ra').onclick=()=>startGame(g.endless?'endless':g.mode=='tut'?'game':g.mode)}
 function bests(){const dk=ls.g('bs_d'+dayKey());$('#bs').innerHTML=[['Best Score',(+ls.g('bs_best')||0).toLocaleString()],['Highest Level',+ls.g('bs_lv')||0],['Blink Mode',(+ls.g('bs_bl')||0).toLocaleString()],['Runs',+ls.g('bs_run')||0],['Coins',coins],["Daily Blink",dk?(+dk).toLocaleString():'—']].map(a=>`<span class="chip"><small>${a[0]}</small>${a[1]}</span>`).join('')}
 function bgMake(){const b=$('#bg');if(b.children.length)return;for(let i=0;i<16;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.animationDuration=(10+Math.random()*14)+'s';s.style.animationDelay=-Math.random()*20+'s';b.appendChild(s)}}
@@ -347,9 +346,6 @@ function apNext(){const id=aq.shift();if(!id){ab=0;return}ab=1;const a=AL.find(x
 function achR(){$('#ag').innerHTML=AL.map(a=>{const u=ach.includes(a[0]);return`<div class="ai${u?' on':''}" role="listitem" aria-label="${a[2]}: ${a[3]}, ${u?'unlocked':'locked'}"><b aria-hidden="true">${a[1]}</b><span>${a[2]}</span><small>${a[3]}</small></div>`}).join('');$('#ac').textContent=ach.length+' / 12 unlocked'}
 function ctAdd(n){const c=(+ls.g('bs_ct')||0)+n;ls.s('bs_ct',c);if(c>=500)unlock('cc')}
 function dailyStreak(){const k=dayKey(),l=+ls.g('bs_dl')||0;if(l==k)return;const y=new Date();y.setDate(y.getDate()-1);const s=l==y.getFullYear()*10000+(y.getMonth()+1)*100+y.getDate()?(+ls.g('bs_ds')||0)+1:1;ls.s('bs_dl',k);ls.s('bs_ds',s);if(s>=7)unlock('dd')}
-function toast(m){const e=$('#ts');e.textContent=m;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>{e.hidden=true},2000)}
-async function share(t){const u=/^https?:/.test(location.protocol)?location.href:'';try{if(navigator.share){await navigator.share(u?{title:'BrainBlink',text:t,url:u}:{title:'BrainBlink',text:t});return}}catch(e){if(e&&e.name=='AbortError')return}
- try{await navigator.clipboard.writeText(t+(u?' '+u:''));toast('Copied!')}catch(e){const a=document.createElement('textarea');a.value=t+(u?' '+u:'');a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Copied!')}catch(x){toast('Copy failed')}a.remove()}}
 setTimeout(()=>{const l=$('#ld');l&&l.remove()},900);
 bgMake();applySet();show('menu');
 </script></body></html>
